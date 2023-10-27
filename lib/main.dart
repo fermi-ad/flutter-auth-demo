@@ -1,4 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:openid_client/openid_client_io.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+authenticate(Uri uri, String clientId, List<String> scopes) async {
+  // create the client
+  var issuer = await Issuer.discover(uri);
+  var client = Client(issuer, clientId);
+
+  // create a function to open a browser with an url
+  urlLauncher(String url) async {
+    final uri = Uri.dataFromString(url);
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.inAppWebView);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
+  // create an authenticator
+  var authenticator = Authenticator(client,
+      scopes: scopes, port: 4000, urlLancher: urlLauncher);
+
+  // starts the authentication
+  var c = await authenticator.authorize();
+
+  // close the webview when finished
+  closeInAppWebView();
+
+  // return the user info
+  return await c.getUserInfo();
+}
 
 void main() async {
   runApp(const MyApp());
